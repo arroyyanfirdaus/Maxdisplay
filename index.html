@@ -1,0 +1,255 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Timer Max Display Alfamart</title>
+
+<link rel="manifest" href="manifest.json">
+
+<meta name="theme-color" content="#0f172a">
+
+<style>
+body{
+    margin:0;
+    font-family:Arial,sans-serif;
+    background:#f1f5f9;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    padding:20px;
+}
+
+.card{
+    background:white;
+    width:100%;
+    max-width:400px;
+    border-radius:25px;
+    padding:25px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.1);
+}
+
+h1{
+    text-align:center;
+    margin:0;
+    color:#0f172a;
+}
+
+p{
+    text-align:center;
+    color:#64748b;
+}
+
+input{
+    width:100%;
+    padding:15px;
+    font-size:20px;
+    border-radius:15px;
+    border:2px solid #cbd5e1;
+    margin-top:10px;
+    box-sizing:border-box;
+}
+
+.timer-box{
+    background:#0f172a;
+    color:#4ade80;
+    text-align:center;
+    border-radius:25px;
+    padding:30px;
+    margin-top:20px;
+}
+
+.timer{
+    font-size:60px;
+    font-weight:bold;
+}
+
+.buttons{
+    display:flex;
+    gap:10px;
+    margin-top:20px;
+    flex-wrap:wrap;
+}
+
+button{
+    flex:1;
+    border:none;
+    padding:15px;
+    border-radius:15px;
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+}
+
+.start{ background:#2563eb; }
+.reset{ background:#ef4444; }
+.stop{ background:#f59e0b; }
+.install{ background:#16a34a; }
+
+.alert-box{
+    margin-top:20px;
+    background:#dc2626;
+    color:white;
+    text-align:center;
+    padding:15px;
+    border-radius:15px;
+    font-weight:bold;
+    display:none;
+    animation:blink 1s infinite;
+}
+
+@keyframes blink{
+    0%{opacity:1;}
+    50%{opacity:0.4;}
+    100%{opacity:1;}
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+    <h1>Timer Max Display</h1>
+    <p>Khusus Operasional Alfamart</p>
+
+    <input type="number" id="jumlahItem" placeholder="Masukkan jumlah item">
+
+    <div class="timer-box">
+        <div>Waktu Mundur</div>
+        <div class="timer" id="timer">00:00</div>
+    </div>
+
+    <div class="buttons">
+        <button class="start" onclick="mulaiTimer()">Mulai</button>
+        <button class="reset" onclick="resetTimer()">Reset</button>
+        <button class="stop" onclick="stopAlarm()">Stop Alarm</button>
+    </div>
+
+    <div class="buttons">
+        <button class="install" id="installBtn">Tambah ke Halaman Utama</button>
+    </div>
+
+    <div class="alert-box" id="alertBox">
+        ALERT MAX DISPLAY SELESAI!
+    </div>
+</div>
+
+<script>
+let countdown;
+let totalDetik = 0;
+let sisaDetik = 0;
+let alarmInterval;
+let deferredPrompt;
+
+const installBtn = document.getElementById('installBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+});
+
+installBtn.addEventListener('click', async () => {
+
+    if(deferredPrompt){
+        deferredPrompt.prompt();
+        deferredPrompt = null;
+    } else {
+        alert('Di iPhone Safari: tekan Share > Add to Home Screen');
+    }
+});
+
+function bunyiAlarm(){
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.type = 'square';
+    oscillator.frequency.value = 1000;
+
+    gainNode.gain.value = 0.3;
+
+    oscillator.start();
+
+    setTimeout(() => {
+        oscillator.stop();
+    }, 500);
+}
+
+function formatWaktu(detik){
+    let menit = Math.floor(detik / 60);
+    let detikSisa = detik % 60;
+    return String(menit).padStart(2,'0') + ':' + String(detikSisa).padStart(2,'0');
+}
+
+function updateDisplay(){
+    document.getElementById('timer').innerText = formatWaktu(sisaDetik);
+}
+
+function mulaiTimer(){
+
+    stopAlarm();
+
+    const jumlahItem = parseInt(document.getElementById('jumlahItem').value);
+
+    if(!jumlahItem || jumlahItem <= 0){
+        alert('Masukkan jumlah item terlebih dahulu');
+        return;
+    }
+
+    const totalMenit = jumlahItem / 13;
+
+    totalDetik = Math.ceil(totalMenit * 60);
+    sisaDetik = totalDetik;
+
+    clearInterval(countdown);
+
+    updateDisplay();
+
+    countdown = setInterval(() => {
+
+        sisaDetik--;
+        updateDisplay();
+
+        if(sisaDetik <= 0){
+
+            clearInterval(countdown);
+
+            document.getElementById('alertBox').style.display = 'block';
+
+            if(navigator.vibrate){
+                navigator.vibrate([500,500,500,500]);
+            }
+
+            bunyiAlarm();
+
+            alarmInterval = setInterval(() => {
+                bunyiAlarm();
+            },1000);
+
+            alert('Waktu Max Display selesai');
+        }
+
+    },1000);
+}
+
+function resetTimer(){
+    clearInterval(countdown);
+    sisaDetik = totalDetik;
+    updateDisplay();
+    stopAlarm();
+}
+
+function stopAlarm(){
+    clearInterval(alarmInterval);
+    document.getElementById('alertBox').style.display = 'none';
+}
+</script>
+
+</body>
+</html>
